@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="lo">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashVibe</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS ສຳລັບແຜນທີ່ດາວທຽມ -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Google Font: Phetsarath -->
+    <link href="https://fonts.googleapis.com/css2?family=Phetsarath:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Phetsarath', sans-serif;
+        }
+
+        #map {
+            height: 220px;
+            width: 100%;
+            border-radius: 0.75rem;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-lg">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">⚡</span>
+                <h1
+                    class="text-xl font-bold bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
+                    FlashVibe (ລາວ)</h1>
+            </div>
+            <div id="user-profile-badge" class="hidden flex items-center space-x-2">
+                <span id="current-username" class="text-xs text-pink-400 font-semibold cursor-pointer underline"
+                    onclick="switchTab('profile')"></span>
+                <button onclick="logoutUser()"
+                    class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg">ອອກຈາກລະບົບ</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md w-full mx-auto p-4 flex-1 pb-24">
+
+        <!-- Tab 0: Login / Register (ໜ້າເຂົ້າສູ່ລະບົບ / ສະມາຊິກ) -->
+        <div id="tab-auth" class="space-y-4 py-6">
+            <div class="text-center space-y-2 mb-6">
+                <h2
+                    class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
+                    ຍິນດີຕ້ອນຮັບສູ່ FlashVibe</h2>
+                <p class="text-xs text-slate-400">ຊຸມຊົນແບ່ງປັນຮ້ານຄ້າ, ຊອກຫາຊ່າງ ແລະ ສະໜັບສະໜູນການບໍລິການໃນ ສປປ ລາວ</p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 mb-4">
+                <button type="button" onclick="switchAuthMode('login')" id="btn-mode-login"
+                    class="flex-1 py-2 text-xs font-semibold rounded-lg bg-pink-600 text-white transition">ເຂົ້າສູ່ລະບົບ</button>
+                <button type="button" onclick="switchAuthMode('register')" id="btn-mode-register"
+                    class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 transition">ສະໝັກສະມາຊິກ</button>
+            </div>
+
+            <!-- Form -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+                <div id="field-name-box" class="hidden">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ຊື່ ແລະ ນາມສະກຸນ (Username)</label>
+                    <input type="text" id="auth-name" placeholder="ເຊັ່ນ: ທ່ານ ສົມສັກ ວົງສາ"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                </div>
+
+                <div id="field-phone-box" class="hidden">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ເບີໂທລະສັບ (ສປປ ລາວ)</label>
+                    <input type="text" id="auth-phone" placeholder="ເຊັ່ນ: 20 2233 4455"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ອີເມວ (Email)</label>
+                    <input type="email" id="auth-email" placeholder="example@email.com"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ລະຫັດຜ່ານ (Password)</label>
+                    <input type="password" id="auth-password" placeholder="••••••••"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                </div>
+
+                <button type="button" id="auth-submit-btn" onclick="handleAuth()"
+                    class="w-full mt-2 py-3 bg-gradient-to-r from-pink-600 to-violet-600 hover:from-pink-500 hover:to-violet-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-pink-600/30 transition">ເຂົ້າສູ່ລະບົບ</button>
+            </div>
+        </div>
+
+        <!-- Tab 1: Feed (ໜ້າຫຼັກ) -->
+        <div id="tab-feed" class="hidden space-y-4">
+            <!-- Notification Banner สำหรับโพสต์ใหม่ของคนที่ติดตาม -->
+            <div id="following-alert-box"
+                class="hidden bg-gradient-to-r from-pink-900/60 to-violet-900/60 border border-pink-500/40 p-3 rounded-2xl flex items-center justify-between shadow-lg">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl animate-bounce">🔔</span>
+                    <div>
+                        <p class="text-xs font-bold text-pink-300">ມີປະກາດໃໝ່ຈາກເພື່ອນທີ່ທ່ານຕິດຕາມ!</p>
+                        <p class="text-[10px] text-slate-300" id="following-alert-text">ກວດສອບຟີດດ່ວນໄດ້ເລີຍ</p>
+                    </div>
+                </div>
+                <button type="button" onclick="dismissAlert()"
+                    class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg">ປິດ</button>
+            </div>
+
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-semibold text-slate-200">🔥 ຟີດປະກາດ ແລະ ບໍລິການດ່ວນ</h2>
+                <span class="text-xs text-slate-400">ອັບເດດໃຫມ່ຕາມໄລຍະເວລາຈີງ</span>
+            </div>
+
+            <!-- ຟິວເຕີໝວດໝູ່ -->
+            <div class="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                <button type="button" onclick="filterPosts('all')"
+                    class="category-btn active px-3 py-1.5 bg-pink-600 text-white rounded-full text-xs font-medium whitespace-nowrap shadow-md">ທັງໝົດ</button>
+                <button type="button" onclick="filterPosts('following')"
+                    class="category-btn px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full text-xs font-medium whitespace-nowrap hover:bg-slate-700">⭐
+                    ຜູ້ໃຊ້ທີ່ຕິດຕາມ</button>
+                <button type="button" onclick="filterPosts('service')"
+                    class="category-btn px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full text-xs font-medium whitespace-nowrap hover:bg-slate-700">🛠️
+                    ຊອກຫາຊ່າງ / ບໍລິການ</button>
+                <button type="button" onclick="filterPosts('recommend')"
+                    class="category-btn px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full text-xs font-medium whitespace-nowrap hover:bg-slate-700">💡
+                    ຂໍຄຳແນະນຳ / ຂອງຖືກດີ</button>
+                <button type="button" onclick="filterPosts('food')"
+                    class="category-btn px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full text-xs font-medium whitespace-nowrap hover:bg-slate-700">🍲
+                    ຊາບູ / ປີ້ງຍ່າງ</button>
+            </div>
+
+            <!-- ລາຍການໂພສ -->
+            <div id="posts-container" class="space-y-3">
+                <p class="text-center text-xs text-slate-500 py-6">ກຳລັງໂຫຼດຂໍ້ມູນຈາກຖານຂໍ້ມູນ...</p>
+            </div>
+        </div>
+
+        <!-- Tab 2: Create Post (ໜ້າສ້າງ/ແກ້ໄຂໂພສ) -->
+        <div id="tab-create" class="hidden space-y-4">
+            <h2 id="form-title" class="text-lg font-semibold text-slate-200 mb-2">⚡ ສ້າງປະກາດຫາບໍລິການ / ນັດໝາຍ</h2>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
+                <input type="hidden" id="edit-post-id" value="">
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ໝວດໝູ່ປະກາດ</label>
+                    <select id="post-category"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                        <option value="service">🛠️ ຊອກຫາຊ່າງ / ຮ້ານສ້ອມແປງ / ບໍລິການ</option>
+                        <option value="recommend">💡 ຂໍຄຳແນະນຳຮ້ານ / ຊອກຫາຂອງຖືກດີ</option>
+                        <option value="food">🍲 ຊາບູ / ປີ້ງຍ່າງ / ຮ້ານອາຫານ</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ລາຍລະອຽດ (ຢາກໄດ້ບໍລິການຫຍັງ?
+                        ງົບປະມານເທົ່າໃດ?)</label>
+                    <textarea id="post-text" rows="3" placeholder="ເຊັ່ນ: ຊອກຫາຊ່າງສ້ອມແປງແອຮ์ດ່ວນ ຢູ່ໂພນສິນໄຊ..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-pink-500 resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">ຄວາມດ່ວນ / ເວລາຕ້ອງການ</label>
+                    <input type="text" id="post-time" placeholder="ເຊັ່ນ: ດ່ວນມື້ນີ້"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                </div>
+
+                <!-- ລະບົບແຜນທີ່ດາວທຽມ -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-400">📍 ປັກໝຸດດາວທຽມພື້ນທີ່</label>
+                        <button type="button" onclick="getCurrentLocation()"
+                            class="text-xs text-pink-400 hover:text-pink-300 font-medium">ດຶງພິກັດ GPS</button>
+                    </div>
+                    <div class="flex space-x-2 mb-2">
+                        <button type="button" onclick="setMapLayer('satellite')" id="btn-sat"
+                            class="flex-1 py-1 bg-pink-600 text-white rounded-lg text-xs font-medium shadow transition">🛰️
+                            ດາວທຽມ</button>
+                        <button type="button" onclick="setMapLayer('street')" id="btn-str"
+                            class="flex-1 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium transition">🗺️
+                            ຖະໜົນ</button>
+                    </div>
+                    <input type="text" id="post-location" placeholder="ພິກັດສະຖານທີ່"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500 mb-2">
+                    <div id="map"></div>
+                    <input type="hidden" id="lat-val" value="17.9647">
+                    <input type="hidden" id="lng-val" value="102.6131">
+                </div>
+
+                <div class="flex space-x-2">
+                    <button type="button" id="submit-post-btn" onclick="savePost()"
+                        class="flex-1 py-3 bg-gradient-to-r from-pink-600 to-violet-600 hover:from-pink-500 hover:to-violet-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-pink-600/30 transition">🚀
+                        ໂພສປະກາດລົງລະບົບ</button>
+                    <button type="button" id="cancel-edit-btn" onclick="cancelEdit()"
+                        class="hidden px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition">ຍົກເລີກ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Profile (ໜ້າໂປຣໄຟລ໌ ແລະ ສະຖິຕິການຕິດຕາມ) -->
+        <div id="tab-profile" class="hidden space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl text-center space-y-4">
+                <div class="w-20 h-20 bg-gradient-to-tr from-pink-500 to-violet-500 rounded-full flex items-center justify-center font-bold text-3xl text-white mx-auto shadow-md"
+                    id="profile-avatar">U</div>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100" id="profile-name">ຊື່ຜູ້ໃຊ້</h2>
+                    <p class="text-xs text-slate-400" id="profile-email">email@domain.com</p>
+                </div>
+
+                <!-- ຕາຕະລາງສະຖິຕິ Follower / Following -->
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-2xl text-center">
+                        <span class="text-xs text-slate-400 block">ກຳລັງຕິດຕາມ (Following)</span>
+                        <span class="text-lg font-bold text-pink-400" id="stat-following-count">0</span>
+                    </div>
+                    <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-2xl text-center">
+                        <span class="text-xs text-slate-400 block">ຜູ້ຕິດຕາມ (Followers)</span>
+                        <span class="text-lg font-bold text-violet-400" id="stat-follower-count">0</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 text-left">
+                    <h3 class="text-xs font-semibold text-slate-300 mb-2">📋 ຜູ້ໃຊ້ທີ່ທ່ານຕິດຕາມຢູ່:</h3>
+                    <div id="following-list-container" class="space-y-1.5 max-h-40 overflow-y-auto">
+                        <p class="text-[11px] text-slate-500">ຍັງບໍ່ໄດ້ຕິດຕາມໃຜ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Support / Donate (ໜ້າສະໜັບສະໜູນລະບົບ) -->
+        <div id="tab-support" class="hidden space-y-4">
+            <div
+                class="bg-gradient-to-br from-pink-900/40 via-slate-900 to-violet-900/40 border border-pink-500/30 rounded-3xl p-5 shadow-xl space-y-4 text-center">
+
+                <div
+                    class="w-16 h-16 bg-pink-500/20 text-pink-400 border border-pink-500/40 rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner">
+                    💖
+                </div>
+
+                <div class="space-y-1">
+                    <h2 class="text-xl font-bold text-slate-100">ສະໜັບສະໜູນລະບົບ FlashVibe</h2>
+                    <p class="text-xs text-slate-300 px-2 leading-relaxed">
+                        "ຂໍຂອບໃຈສະມາຊິກຜູ້ໃຈດີທຸກທ່ານ! ທຶນສົມທົບນີ້ຈະຖືກນຳໄປໃຊ້ເປັນຄ່າໃຊ້ຈ່າຍໃນການຮັກສາລະບົບເຊີບເວີ,
+                        ພັດທະນາຟີເຈີໃໝ່ໆ ແລະ ຊ່ວຍໃຫ້ຊຸມຊົນຄົນລາວເຮົາໄດ້ມີພື້ນທີ່ຊອກຫາຊ່າງ ແລະ ຮ້ານຄ້າທີ່ດີແບບນີ້ຕໍ່ໄປ."
+                    </p>
+                </div>
+
+                <!-- QR Code ຕົວຢ່າງ -->
+                <div
+                    class="bg-white p-3 rounded-2xl w-44 h-44 mx-auto shadow-md flex items-center justify-center border-4 border-slate-800">
+                    <img src="Imgs/QR.jpg" alt="BCEL QR Code" class="w-full h-full object-contain">
+                </div>
+                <span class="text-[10px] text-slate-400 block">ສະແກນຜ່ານແອັບທະນາຄານລາວ (BCEL One / JDB / LDB)</span>
+
+                <!-- ລາຍລະອຽດບັນຊີທະນາຄານ -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 text-left space-y-2.5">
+                    <div class="flex justify-between items-center text-xs border-b border-slate-800/80 pb-2">
+                        <span class="text-slate-400">ທະນາຄານ:</span>
+                        <span class="font-semibold text-slate-200">BCEL (ທະນາຄານ ການຄ້າຕ່າງປະເທດລາວ ມະຫາຊົນ)</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs border-b border-slate-800/80 pb-2">
+                        <span class="text-slate-400">ຊື່ບັນຊີ:</span>
+                        <span class="font-semibold text-pink-400">FlashVibe Community</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">ເລກບັນຊີ (Kip):</span>
+                        <div class="flex items-center space-x-2">
+                            <span id="acc-number"
+                                class="font-mono font-bold text-slate-100">160-12-00-01281818-001</span>
+                            <button type="button" onclick="copyAccNumber()"
+                                class="px-2 py-1 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 border border-pink-500/30 rounded-lg text-[10px] font-semibold transition">ຄັດລອກ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ຂໍ້ມູນຕິດຕໍ່ຜູ້ດູແລລະບົບ -->
+                <div
+                    class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 text-xs flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-lg">📞</span>
+                        <div class="text-left">
+                            <p class="text-slate-400 text-[10px]">ສາຍດ່ວນ / WhatsApp ຜູ້ດູແລ:</p>
+                            <p class="font-bold text-slate-200">+856 20 9861 4336</p>
+                        </div>
+                    </div>
+                    <a href="https://wa.me/message/4XN3IJQECDOBH1" target="_blank"
+                        class="px-3 py-1.5 bg-green-600/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-semibold hover:bg-green-600/30 transition">ຕິດຕໍ່
+                        WhatsApp</a>
+                </div>
+
+                <div class="pt-2 text-[11px] text-pink-300 italic font-medium">
+                    "ທຸກການສະໜັບສະໜູນຂອງທ່າ່ນ ຄືພະລັງໃຫ້ພວກເຮົາສ້າງສັນສິ່ງດີໆໃຫ້ສັງຄົມລາວ ຂໍຂອບໃຈຈາກໃຈຈິງ!" 🙏✨
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal ສຳລັບແຊັດສ່ວນຕົວ (Direct Chat Room) -->
+    <div id="chat-modal" class="hidden fixed inset-0 bg-slate-950 z-50 flex flex-col h-[100dvh] overflow-hidden">
+        <!-- Chat Header (Fixed Top) -->
+        <div
+            class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-md shrink-0">
+            <div class="flex items-center space-x-3">
+                <button type="button" onclick="closeChatModal()"
+                    class="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 bg-slate-800 rounded-lg">←
+                    ກັບຄືນ</button>
+                <div id="chat-owner-avatar"
+                    class="w-9 h-9 rounded-full bg-gradient-to-tr from-pink-500 to-violet-500 flex items-center justify-center font-bold text-white text-sm shrink-0">
+                </div>
+                <div>
+                    <h3 id="chat-owner-name" class="font-bold text-slate-100 text-xs"></h3>
+                    <p id="chat-owner-status" class="text-[10px] text-slate-400"></p>
+                </div>
+            </div>
+            <!-- ปุ่มเจ้าของโพสต์เปิด/ปิดแชท -->
+            <div id="chat-toggle-container" class="hidden shrink-0">
+                <button type="button" id="btn-toggle-chat" onclick="toggleChatStatus()"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold transition shadow"></button>
+            </div>
+        </div>
+
+        <!-- Chat Messages Box (Scrollable Middle) -->
+        <div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 max-w-md w-full mx-auto">
+            <!-- ข้อความจะถูกโหลดมาแสดงที่นี่ -->
+        </div>
+
+        <!-- Chat Input Bar (Fixed Bottom) -->
+        <div class="bg-slate-900 border-t border-slate-800 p-3 shrink-0">
+            <div class="max-w-md mx-auto flex items-center space-x-2">
+                <input type="text" id="chat-input" placeholder="ພິມແນະນຳຊື່ຮ້ານ, ເບີໂທ ຫຼື ລາຄາ..."
+                    class="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-pink-500">
+                <button type="button" onclick="sendChatMessage()"
+                    class="px-5 py-3 bg-gradient-to-r from-pink-600 to-violet-600 hover:from-pink-500 hover:to-violet-500 text-white rounded-2xl text-xs font-semibold shadow transition">ສົ່ງ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 py-3 z-30">
+        <div class="max-w-md mx-auto flex justify-around">
+            <button type="button" onclick="switchTab('feed')" id="nav-feed"
+                class="flex flex-col items-center text-pink-500 font-medium text-xs space-y-1">
+                <span class="text-lg">🔥</span>
+                <span>ຟີດດ່ວນ</span>
+            </button>
+            <button type="button" onclick="switchTab('create')" id="nav-create"
+                class="flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1">
+                <span class="text-lg">➕</span>
+                <span>ສ້າງປະກາດ</span>
+            </button>
+            <button type="button" onclick="switchTab('profile')" id="nav-profile"
+                class="flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1">
+                <span class="text-lg">👤</span>
+                <span>ໂປຣໄຟລ໌</span>
+            </button>
+            <button type="button" onclick="switchTab('support')" id="nav-support"
+                class="flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1">
+                <span class="text-lg">💖</span>
+                <span>ສົມທົບທຶນ</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import {getDatabase, ref, push, set, remove, onValue} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPlKQmGJZxWaea_6y-h5lRGL5PSGw861M",
+            authDomain: "short-link-b5ee2.firebaseapp.com",
+            databaseURL: "https://short-link-b5ee2-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "short-link-b5ee2",
+            storageBucket: "short-link-b5ee2.firebasestorage.app",
+            messagingSenderId: "1069426525163",
+            appId: "1:1069426525163:web:4b49c025fb5909b9ad4fae",
+            measurementId: "G-TN3NCB1N2J"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let currentUser = null;
+        let authMode = 'login';
+        let map, marker, satelliteLayer, streetLayer;
+        let globalPosts = [];
+        let allUsersData = {};
+        let currentFilter = 'all';
+        let activeChatPostId = null;
+        let activeChatPostData = null;
+        let lastKnownPostCount = 0;
+
+        // ดึงข้อมูล Users และ Posts แบบ Real-time
+        const rootRef = ref(db);
+        onValue(rootRef, (snapshot) => {
+            const val = snapshot.val() || {};
+
+            // โหลด Posts
+            globalPosts = [];
+            if (val.posts) {
+                Object.keys(val.posts).forEach((key) => {
+                    globalPosts.unshift({id: key, ...val.posts[key]});
+                });
+            }
+
+            // เชັກแจ้งเตือนโพสต์ใหม่จากคนที่ติดตาม
+            if (currentUser && globalPosts.length > lastKnownPostCount && lastKnownPostCount > 0) {
+                let latestPost = globalPosts[0];
+                let safeMyName = currentUser.name.replace(/[.#$[\]]/g, "_");
+                let followingList = val.users && val.users[safeMyName] ? (val.users[safeMyName].following || {}) : {};
+
+                let safePostName = latestPost.name.replace(/[.#$[\]]/g, "_");
+                if (latestPost.name !== currentUser.name && followingList[safePostName]) {
+                    let alertBox = document.getElementById('following-alert-box');
+                    let alertText = document.getElementById('following-alert-text');
+                    if (alertBox && alertText) {
+                        alertBox.classList.remove('hidden');
+                        alertText.innerText = `${latestPost.name} ໄດ້ລົງປະກາດໃໝ່: "${latestPost.text.substring(0, 30)}..."`;
+                    }
+                }
+            }
+            lastKnownPostCount = globalPosts.length;
+
+            // โหลด Users สำหรับระบบ Follow
+            allUsersData = val.users || {};
+
+            renderPosts(currentFilter);
+            if (currentUser) {
+                updateProfileStats();
+            }
+            if (activeChatPostId) {
+                let currentPost = globalPosts.find(p => p.id === activeChatPostId);
+                if (currentPost) activeChatPostData = currentPost;
+            }
+        });
+
+        window.switchAuthMode = function (mode) {
+            authMode = mode;
+            let btnLogin = document.getElementById('btn-mode-login');
+            let btnReg = document.getElementById('btn-mode-register');
+            let nameBox = document.getElementById('field-name-box');
+            let phoneBox = document.getElementById('field-phone-box');
+            let submitBtn = document.getElementById('auth-submit-btn');
+
+            if (!btnLogin || !btnReg || !nameBox || !phoneBox || !submitBtn) return;
+
+            if (mode === 'login') {
+                btnLogin.className = "flex-1 py-2 text-xs font-semibold rounded-lg bg-pink-600 text-white transition";
+                btnReg.className = "flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 transition";
+                nameBox.classList.add('hidden');
+                phoneBox.classList.add('hidden');
+                submitBtn.innerText = "ເຂົ້າສູ່ລະບົບ";
+            } else {
+                btnReg.className = "flex-1 py-2 text-xs font-semibold rounded-lg bg-pink-600 text-white transition";
+                btnLogin.className = "flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 transition";
+                nameBox.classList.remove('hidden');
+                phoneBox.classList.remove('hidden');
+                submitBtn.innerText = "ລົງທະບຽນສະມາຊິກໃໝ່";
+            }
+        }
+
+        window.handleAuth = function () {
+            let emailEl = document.getElementById('auth-email');
+            let passwordEl = document.getElementById('auth-password');
+            let nameEl = document.getElementById('auth-name');
+            let phoneEl = document.getElementById('auth-phone');
+
+            if (!emailEl || !passwordEl) return;
+
+            let email = emailEl.value;
+            let password = passwordEl.value;
+            let name = nameEl ? nameEl.value : '';
+            let phone = phoneEl ? phoneEl.value : '';
+
+            if (!email || !password) {
+                alert('ກະລຸນາໃສ່ອີເມວ ແລະ ລະຫັດຜ່ານໃຫ້ຄົບຖ້ວນ');
+                return;
+            }
+
+            if (authMode === 'register' && (!name || !phone)) {
+                alert('ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທສຳລັບການລົງທະບຽນ');
+                return;
+            }
+
+            currentUser = {
+                name: authMode === 'register' ? name : email.split('@')[0],
+                email: email,
+                phone: phone || '-'
+            };
+
+            let usernameSpan = document.getElementById('current-username');
+            let profileName = document.getElementById('profile-name');
+            let profileEmail = document.getElementById('profile-email');
+            let profileAvatar = document.getElementById('profile-avatar');
+
+            if (usernameSpan) usernameSpan.innerText = `👤 ${currentUser.name}`;
+            if (profileName) profileName.innerText = currentUser.name;
+            if (profileEmail) profileEmail.innerText = currentUser.email;
+            if (profileAvatar) profileAvatar.innerText = currentUser.name.charAt(0);
+
+            let profileBadge = document.getElementById('user-profile-badge');
+            let bottomNav = document.getElementById('bottom-nav');
+            let tabAuth = document.getElementById('tab-auth');
+
+            if (profileBadge) profileBadge.classList.remove('hidden');
+            if (bottomNav) bottomNav.classList.remove('hidden');
+            if (tabAuth) tabAuth.classList.add('hidden');
+
+            switchTab('feed');
+            lastKnownPostCount = globalPosts.length;
+        }
+
+        window.logoutUser = function () {
+            currentUser = null;
+            let profileBadge = document.getElementById('user-profile-badge');
+            let bottomNav = document.getElementById('bottom-nav');
+            let tabFeed = document.getElementById('tab-feed');
+            let tabCreate = document.getElementById('tab-create');
+            let tabProfile = document.getElementById('tab-profile');
+            let tabSupport = document.getElementById('tab-support');
+            let tabAuth = document.getElementById('tab-auth');
+
+            if (profileBadge) profileBadge.classList.add('hidden');
+            if (bottomNav) bottomNav.classList.add('hidden');
+            if (tabFeed) tabFeed.classList.add('hidden');
+            if (tabCreate) tabCreate.classList.add('hidden');
+            if (tabProfile) tabProfile.classList.add('hidden');
+            if (tabSupport) tabSupport.classList.add('hidden');
+            if (tabAuth) tabAuth.classList.remove('hidden');
+        }
+
+        window.switchTab = function (tabName) {
+            let tabFeed = document.getElementById('tab-feed');
+            let tabCreate = document.getElementById('tab-create');
+            let tabProfile = document.getElementById('tab-profile');
+            let tabSupport = document.getElementById('tab-support');
+
+            if (tabFeed) tabFeed.classList.add('hidden');
+            if (tabCreate) tabCreate.classList.add('hidden');
+            if (tabProfile) tabProfile.classList.add('hidden');
+            if (tabSupport) tabSupport.classList.add('hidden');
+
+            let navFeed = document.getElementById('nav-feed');
+            let navCreate = document.getElementById('nav-create');
+            let navProfile = document.getElementById('nav-profile');
+            let navSupport = document.getElementById('nav-support');
+
+            if (navFeed) navFeed.className = "flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1";
+            if (navCreate) navCreate.className = "flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1";
+            if (navProfile) navProfile.className = "flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1";
+            if (navSupport) navSupport.className = "flex flex-col items-center text-slate-400 hover:text-white font-medium text-xs space-y-1";
+
+            if (tabName === 'feed') {
+                if (tabFeed) tabFeed.classList.remove('hidden');
+                if (navFeed) navFeed.className = "flex flex-col items-center text-pink-500 font-medium text-xs space-y-1";
+                renderPosts(currentFilter);
+            } else if (tabName === 'create') {
+                if (tabCreate) tabCreate.classList.remove('hidden');
+                if (navCreate) navCreate.className = "flex flex-col items-center text-pink-500 font-medium text-xs space-y-1";
+                setTimeout(() => {initMap(); if (map) map.invalidateSize();}, 200);
+            } else if (tabName === 'profile') {
+                if (tabProfile) tabProfile.classList.remove('hidden');
+                if (navProfile) navProfile.className = "flex flex-col items-center text-pink-500 font-medium text-xs space-y-1";
+                updateProfileStats();
+            } else if (tabName === 'support') {
+                if (tabSupport) tabSupport.classList.remove('hidden');
+                if (navSupport) navSupport.className = "flex flex-col items-center text-pink-500 font-medium text-xs space-y-1";
+            }
+        }
+
+        window.dismissAlert = function () {
+            let alertBox = document.getElementById('following-alert-box');
+            if (alertBox) alertBox.classList.add('hidden');
+        }
+
+        function formatTimestamp(ts) {
+            if (!ts) return 'ມໍ່ໆນີ້';
+            let date = new Date(ts);
+            let day = String(date.getDate()).padStart(2, '0');
+            let month = String(date.getMonth() + 1).padStart(2, '0');
+            let year = date.getFullYear();
+            let hours = String(date.getHours()).padStart(2, '0');
+            let minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year} ເວລາ ${hours}:${minutes}`;
+        }
+
+        function renderPosts(filterCat = 'all') {
+            currentFilter = filterCat;
+            let container = document.getElementById('posts-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let userKey = currentUser ? currentUser.name.replace(/[.#$[\]]/g, "_") : '';
+            let myFollowing = (allUsersData[userKey] && allUsersData[userKey].following) ? allUsersData[userKey].following : {};
+
+            let filtered = globalPosts.filter(p => {
+                if (filterCat === 'all') return true;
+                if (filterCat === 'following') {
+                    let pUserKey = p.name.replace(/[.#$[\]]/g, "_");
+                    return (myFollowing && myFollowing[pUserKey] === true) || (currentUser && p.name === currentUser.name);
+                }
+                return p.category === filterCat;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-xs text-slate-500 py-6">ບໍ່ມີປະກາດໃນໝວດນີ້</p>`;
+                return;
+            }
+
+            filtered.forEach(post => {
+                let catData = {
+                    'service': {name: '🛠️ ຊອກຫາຊ່າງ / ບໍລິການ', color: 'blue'},
+                    'recommend': {name: '💡 ຂໍຄຳແນະນຳ / ຂອງຖືກດີ', color: 'amber'},
+                    'food': {name: '🍲 ຊາບູ / ປີ້ງຍ່າງ', color: 'pink'}
+                }[post.category] || {name: 'ທົ່ວໄປ', color: 'slate'};
+
+                let isChatClosed = post.chatClosed === true;
+                let formattedTime = formatTimestamp(post.createdAt);
+                let isMyPost = currentUser && currentUser.name === post.name;
+
+                let postAuthorKey = post.name.replace(/[.#$[\]]/g, "_");
+                let isFollowing = currentUser && (myFollowing && myFollowing[postAuthorKey] === true);
+
+                let card = document.createElement('div');
+                card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md relative overflow-hidden space-y-3';
+                card.innerHTML = `
+                    <div class="absolute top-0 right-0 bg-${catData.color}-500/10 text-${catData.color}-400 text-[10px] px-3 py-1 rounded-bl-xl font-semibold border-l border-b border-${catData.color}-500/20">${catData.name}</div>
+                    <div class="flex items-start justify-between pr-24">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-violet-500 flex items-center justify-center font-bold text-lg text-white">${post.name.charAt(0)}</div>
+                            <div>
+                                <h3 class="font-semibold text-slate-200 flex items-center space-x-2">
+                                    <span>${post.name}</span>
+                                </h3>
+                                <p class="text-[10px] text-slate-400">📅 ${formattedTime}</p>
+                                <p class="text-xs text-slate-400">⏱️ ${post.time} | 📍 ${post.location}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ปุ่มติดตาม/เลิกติดตาม -->
+                    ${!isMyPost && currentUser ? `
+                        <div>
+                            <button type="button" onclick="toggleFollow('${post.name}')" class="px-3 py-1 rounded-lg text-[10px] font-semibold transition ${isFollowing ? 'bg-slate-800 text-slate-300 border border-slate-700' : 'bg-pink-600/20 text-pink-400 border border-pink-500/30 hover:bg-pink-600/30'}">
+                                ${isFollowing ? '✓ ຕິດຕາມແລ້ວ' : '+ ຕິດຕາມເພື່ອນ'}
+                            </button>
+                        </div>
+                    ` : ''}
+
+                    <p class="text-sm text-slate-300 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80">${post.text}</p>
+                    
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <a href="https://maps.google.com/?q=${post.lat},${post.lng}" target="_blank" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition">📍 ເປີດແຜນທີ່</a>
+                            ${isMyPost ? `
+                                <button type="button" onclick="editPost('${post.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl text-xs font-medium transition">✏️ ແກ້ໄຂ</button>
+                                <button type="button" onclick="deletePost('${post.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-red-400 rounded-xl text-xs font-medium transition">🗑️ ລົບ</button>
+                            ` : ''}
+                        </div>
+                        <button type="button" onclick="openChatModal('${post.id}')" class="px-4 py-1.5 ${isChatClosed ? 'bg-slate-800 text-slate-400' : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow'} rounded-xl text-xs font-semibold transition">
+                            ${isChatClosed ? '🔒 ປິດແຊັດແລ້ວ' : '💬 ແນະນຳຮ້ານ / ແຊັດ'}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.filterPosts = function (category) {
+            let buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active', 'bg-pink-600', 'text-white');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+            });
+            if (event && event.target) {
+                event.target.classList.add('active', 'bg-pink-600', 'text-white');
+                event.target.classList.remove('bg-slate-800', 'text-slate-300');
+            }
+            renderPosts(category);
+        }
+
+        // ระบบ Follow / Unfollow
+        window.toggleFollow = function (targetUserName) {
+            if (!currentUser) return;
+            let myKey = currentUser.name.replace(/[.#$[\]]/g, "_");
+            let targetKey = targetUserName.replace(/[.#$[\]]/g, "_");
+
+            let myUserData = allUsersData[myKey] || {following: {}, followers: {}};
+            let targetUserData = allUsersData[targetKey] || {following: {}, followers: {}};
+
+            let isCurrentlyFollowing = myUserData.following && myUserData.following[targetKey];
+
+            if (isCurrentlyFollowing) {
+                delete myUserData.following[targetKey];
+                if (targetUserData.followers) delete targetUserData.followers[myKey];
+            } else {
+                if (!myUserData.following) myUserData.following = {};
+                myUserData.following[targetKey] = true;
+
+                if (!targetUserData.followers) targetUserData.followers = {};
+                targetUserData.followers[myKey] = true;
+            }
+
+            set(ref(db, `users/${myKey}`), myUserData);
+            set(ref(db, `users/${targetKey}`), targetUserData).then(() => {
+                renderPosts(currentFilter);
+                updateProfileStats();
+            });
+        }
+
+        function updateProfileStats() {
+            if (!currentUser) return;
+            let myKey = currentUser.name.replace(/[.#$[\]]/g, "_");
+            let myData = allUsersData[myKey] || {following: {}, followers: {}};
+
+            let followingObj = myData.following || {};
+            let followersObj = myData.followers || {};
+
+            let followingCount = Object.keys(followingObj).length;
+            let followersCount = Object.keys(followersObj).length;
+
+            let followingCountEl = document.getElementById('stat-following-count');
+            let followerCountEl = document.getElementById('stat-follower-count');
+            if (followingCountEl) followingCountEl.innerText = followingCount;
+            if (followerCountEl) followerCountEl.innerText = followersCount;
+
+            let listContainer = document.getElementById('following-list-container');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+
+            if (followingCount === 0) {
+                listContainer.innerHTML = `<p class="text-[11px] text-slate-500">ຍັງບໍ່ໄດ້ຕິດຕາມໃຜ</p>`;
+                return;
+            }
+
+            Object.keys(followingObj).forEach(friendKey => {
+                let friendName = friendKey.replace(/_/g, ".");
+                let item = document.createElement('div');
+                item.className = 'flex items-center justify-between bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-xs';
+                item.innerHTML = `
+                    <span class="text-slate-200 font-medium">👤 ${friendName}</span>
+                    <button type="button" onclick="toggleFollow('${friendName}')" class="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg hover:bg-red-500/20">ເລີກຕິດຕາມ</button>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        window.editPost = function (postId) {
+            let post = globalPosts.find(p => p.id === postId);
+            if (!post) return;
+
+            document.getElementById('edit-post-id').value = post.id;
+            document.getElementById('post-category').value = post.category;
+            document.getElementById('post-text').value = post.text;
+            document.getElementById('post-time').value = post.time;
+            document.getElementById('post-location').value = post.location;
+            document.getElementById('lat-val').value = post.lat;
+            document.getElementById('lng-val').value = post.lng;
+
+            document.getElementById('form-title').innerText = "✏️ ແກ້ໄຂປະກາດຂອງທ່ານ";
+            document.getElementById('submit-post-btn').innerText = "💾 ບັນທຶກການແກ້ໄຂ";
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+            switchTab('create');
+            if (map && post.lat && post.lng) {
+                let latLng = [parseFloat(post.lat), parseFloat(post.lng)];
+                map.setView(latLng, 15);
+                marker.setLatLng(latLng);
+            }
+        }
+
+        window.cancelEdit = function () {
+            document.getElementById('edit-post-id').value = "";
+            document.getElementById('post-text').value = "";
+            document.getElementById('post-time').value = "";
+            document.getElementById('post-location').value = "";
+
+            document.getElementById('form-title').innerText = "⚡ ສ້າງປະກາດຫາບໍລິການ / ນັດໝາຍ";
+            document.getElementById('submit-post-btn').innerText = "🚀 ໂພສປະກາດລົງລະບົບ";
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+        }
+
+        window.deletePost = function (postId) {
+            if (confirm('ທ່ານຕ້ອງການລົບປະກາດນີ້ແທ້ບໍ?')) {
+                const singlePostRef = ref(db, `posts/${postId}`);
+                remove(singlePostRef).then(() => {
+                    alert('ລົບປະກາດສຳເລັດແລ້ວ');
+                }).catch(err => {
+                    alert('ລົບບໍ່ສຳເລັດ: ' + err.message);
+                });
+            }
+        }
+
+        window.savePost = function () {
+            let editId = document.getElementById('edit-post-id').value;
+            let text = document.getElementById('post-text').value;
+            let time = document.getElementById('post-time').value;
+            let location = document.getElementById('post-location').value || 'ພິກັດດາວທຽມ';
+            let category = document.getElementById('post-category').value;
+            let lat = document.getElementById('lat-val').value;
+            let lng = document.getElementById('lng-val').value;
+
+            if (!text.trim()) {
+                alert('ກະລຸນາໃສ່ລາຍລະອຽດປະກາດ');
+                return;
+            }
+
+            if (editId) {
+                let existingPost = globalPosts.find(p => p.id === editId);
+                let updatedData = {
+                    ...existingPost,
+                    category: category,
+                    text: text,
+                    time: time || 'ດ່ວນມື້ນີ້',
+                    location: location,
+                    lat: lat,
+                    lng: lng
+                };
+
+                const singlePostRef = ref(db, `posts/${editId}`);
+                set(singlePostRef, updatedData).then(() => {
+                    cancelEdit();
+                    switchTab('feed');
+                    alert('ອັບເດດປະກາດສຳເລັດແລ້ວ');
+                }).catch(err => {
+                    alert('ອັບເດດບໍ່ສຳເລັດ: ' + err.message);
+                });
+
+            } else {
+                let newPostItem = {
+                    name: currentUser.name,
+                    category: category,
+                    text: text,
+                    time: time || 'ດ່ວນມື້ນີ້',
+                    location: location,
+                    lat: lat,
+                    lng: lng,
+                    chatClosed: false,
+                    createdAt: Date.now()
+                };
+
+                push(ref(db, 'posts'), newPostItem).then(() => {
+                    document.getElementById('post-text').value = '';
+                    document.getElementById('post-time').value = '';
+                    document.getElementById('post-location').value = '';
+                    switchTab('feed');
+                }).catch((error) => {
+                    alert('ເກີດຂໍ້ຜິດພາດ: ' + error.message);
+                });
+            }
+        }
+
+        window.openChatModal = function (postId) {
+            if (!currentUser) {
+                alert('ກະລຸນາເຂົ້າສູ່ລະບົບກ່ອນທັກແຊັດ');
+                return;
+            }
+            activeChatPostId = postId;
+            activeChatPostData = globalPosts.find(p => p.id === postId);
+
+            if (!activeChatPostData) return;
+
+            document.getElementById('chat-owner-name').innerText = activeChatPostData.name;
+            document.getElementById('chat-owner-avatar').innerText = activeChatPostData.name.charAt(0);
+
+            let statusText = activeChatPostData.chatClosed ? '🔒 ປິດຮັບຄຳແນະນຳ ແລະ ແຊັດແລ້ວ' : '🟢 ພ້ອມຮັບຄຳແນະນຳຮ້ານ ແລະ ສົນທະນາ';
+            document.getElementById('chat-owner-status').innerText = statusText;
+
+            let toggleBox = document.getElementById('chat-toggle-container');
+            let toggleBtn = document.getElementById('btn-toggle-chat');
+            if (currentUser.name === activeChatPostData.name) {
+                toggleBox.classList.remove('hidden');
+                if (activeChatPostData.chatClosed) {
+                    toggleBtn.innerText = "🔓 ເປີດຮັບແຊັດ";
+                    toggleBtn.className = "px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-[10px] font-semibold transition shadow";
+                } else {
+                    toggleBtn.innerText = "🔒 ປິດຮັບແຊັດ";
+                    toggleBtn.className = "px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-semibold transition shadow";
+                }
+            } else {
+                toggleBox.classList.add('hidden');
+            }
+
+            document.getElementById('chat-modal').classList.remove('hidden');
+            loadChatMessages(postId);
+        }
+
+        window.closeChatModal = function () {
+            document.getElementById('chat-modal').classList.add('hidden');
+            activeChatPostId = null;
+            activeChatPostData = null;
+        }
+
+        window.toggleChatStatus = function () {
+            if (!activeChatPostId || !activeChatPostData) return;
+            let newStatus = !activeChatPostData.chatClosed;
+
+            const postRef = ref(db, `posts/${activeChatPostId}`);
+            set(postRef, {
+                ...activeChatPostData,
+                chatClosed: newStatus
+            }).then(() => {
+                activeChatPostData.chatClosed = newStatus;
+                let statusText = newStatus ? '🔒 ປິດຮັບຄຳແນະນຳ ແລະ ແຊັດແລ້ວ' : '🟢 ພ້ອມຮັບຄຳແນະນຳຮ້ານ ແລະ ສົນທະນາ';
+                document.getElementById('chat-owner-status').innerText = statusText;
+
+                let toggleBtn = document.getElementById('btn-toggle-chat');
+                if (newStatus) {
+                    toggleBtn.innerText = "🔓 ເປີດຮັບແຊັດ";
+                    toggleBtn.className = "px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-[10px] font-semibold transition shadow";
+                } else {
+                    toggleBtn.innerText = "🔒 ປິດຮັບແຊັດ";
+                    toggleBtn.className = "px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-semibold transition shadow";
+                }
+                alert(newStatus ? 'ປິດແຊັດສຳເລັດ' : 'ເປີດແຊັດສຳເລັດ');
+            });
+        }
+
+        function loadChatMessages(postId) {
+            const messagesRef = ref(db, `posts/${postId}/messages`);
+            onValue(messagesRef, (snapshot) => {
+                const data = snapshot.val();
+                let container = document.getElementById('chat-messages-container');
+                if (!container) return;
+                container.innerHTML = '';
+
+                let initialBox = document.createElement('div');
+                initialBox.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2 mb-4 shrink-0';
+                initialBox.innerHTML = `
+                    <div class="flex items-center space-x-2 text-[10px] text-pink-400 font-bold">
+                        <span>📌 ປະກາດຈາກ ${activeChatPostData.name}</span>
+                    </div>
+                    <p class="text-xs text-slate-200">${activeChatPostData.text}</p>
+                `;
+                container.appendChild(initialBox);
+
+                if (data) {
+                    Object.values(data).forEach(msg => {
+                        let isMe = msg.sender === currentUser.name;
+                        let msgDiv = document.createElement('div');
+                        msgDiv.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`;
+                        msgDiv.innerHTML = `
+                            <span class="text-[10px] text-slate-400 px-1">${msg.sender}</span>
+                            <div class="max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs ${isMe ? 'bg-pink-600 text-white rounded-br-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'}">
+                                ${msg.text}
+                            </div>
+                        `;
+                        container.appendChild(msgDiv);
+                    });
+                }
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        window.sendChatMessage = function () {
+            if (activeChatPostData && activeChatPostData.chatClosed && currentUser.name !== activeChatPostData.name) {
+                alert('ຂໍ້ອະໄພ, ເຈົ້າຂອງໂພສໄດ້ປິດຮັບແຊັດ/ຄຳແນະນຳສຳລັບໂພສນີ້ແລ້ວ');
+                return;
+            }
+
+            let input = document.getElementById('chat-input');
+            if (!input) return;
+            let text = input.value.trim();
+            if (!text) return;
+
+            let msgItem = {
+                sender: currentUser.name,
+                text: text,
+                createdAt: Date.now()
+            };
+
+            const messagesRef = ref(db, `posts/${activeChatPostId}/messages`);
+            push(messagesRef, msgItem).then(() => {
+                input.value = '';
+            }).catch(err => {
+                alert('ສົ່ງຂໍ້ຄວາມບໍ່ສຳເລັດ: ' + err.message);
+            });
+        }
+
+        window.copyAccNumber = function () {
+            let accTextEl = document.getElementById('acc-number');
+            if (!accTextEl) return;
+            let accText = accTextEl.innerText;
+            navigator.clipboard.writeText(accText).then(() => {
+                alert('ຄັດລອກເລກບັນຊີສຳເລັດ: ' + accText);
+            });
+        }
+
+        function initMap() {
+            if (map) return;
+            let mapContainer = document.getElementById('map');
+            if (!mapContainer) return;
+
+            map = L.map('map').setView([17.9647, 102.6131], 15);
+
+            satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri'
+            });
+
+            streetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri'
+            });
+
+            satelliteLayer.addTo(map);
+
+            marker = L.marker([17.9647, 102.6131], {draggable: true}).addTo(map);
+
+            marker.on('dragend', function (e) {
+                let pos = marker.getLatLng();
+                document.getElementById('lat-val').value = pos.lat;
+                document.getElementById('lng-val').value = pos.lng;
+                document.getElementById('post-location').value = `ພິກັດດາວທຽມ: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
+            });
+
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                document.getElementById('lat-val').value = e.latlng.lat;
+                document.getElementById('lng-val').value = e.latlng.lng;
+                document.getElementById('post-location').value = `ພິກັດດາວທຽມ: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+            });
+        }
+
+        window.setMapLayer = function (type) {
+            if (!map) return;
+            let btnSat = document.getElementById('btn-sat');
+            let btnStr = document.getElementById('btn-str');
+
+            if (type === 'satellite') {
+                map.removeLayer(streetLayer);
+                satelliteLayer.addTo(map);
+                if (btnSat) btnSat.className = "flex-1 py-1 bg-pink-600 text-white rounded-lg text-xs font-medium shadow transition";
+                if (btnStr) btnStr.className = "flex-1 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium transition";
+            } else {
+                map.removeLayer(satelliteLayer);
+                streetLayer.addTo(map);
+                if (btnStr) btnStr.className = "flex-1 py-1 bg-pink-600 text-white rounded-lg text-xs font-medium transition";
+                if (btnSat) btnSat.className = "flex-1 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium transition";
+            }
+        }
+
+        window.getCurrentLocation = function () {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    let lat = position.coords.latitude;
+                    let lng = position.coords.longitude;
+                    if (map) map.setView([lat, lng], 17);
+                    if (marker) marker.setLatLng([lat, lng]);
+                    let latVal = document.getElementById('lat-val');
+                    let lngVal = document.getElementById('lng-val');
+                    let postLoc = document.getElementById('post-location');
+                    if (latVal) latVal.value = lat;
+                    if (lngVal) lngVal.value = lng;
+                    if (postLoc) postLoc.value = `📍 ຕຳແໜ່ງ GPS ປັດຈຸບັນ`;
+                }, function () {
+                    alert('ບໍ່ສາມາດດຶງຕຳແໜ່ງ GPS ໄດ້');
+                });
+            }
+        }
+    </script>
+
+      <script src="keep-protect.js"></script>
+        <script src="protect.js"></script>
+</body>
+
+</html>
